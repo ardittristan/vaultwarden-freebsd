@@ -15,34 +15,35 @@ jobs:
           - '14.0'
           - '13.3'
           - '13.2'
+          - '12.4'
     steps:
       - uses: actions/checkout@v4
       - name: Setup
         run: |
           mkdir repo
-      - name: Build with cross-platform-actions
-        uses: cross-platform-actions/action@v0.24.0
+      - name: Build
+        uses: vmactions/freebsd-vm@v1
         with:
-          operating_system: ${{ matrix.os }}
-          architecture: ${{ matrix.arch }}
-          version: ${{ matrix.version }}
-          shell: sh
+          release: ${{ matrix.version }}
+          sync: sshfs
+          usesh: true
+          prepare: |
+            mkdir -p /usr/local/etc/pkg/repos
+            echo 'FreeBSD: { url: "pkg+http://pkg.FreeBSD.org/${ABI}/latest" }' > /usr/local/etc/pkg/repos/FreeBSD.conf
+            pkg install -y git
           run: |
-            set -x
-            sudo mkdir -p /usr/local/etc/pkg/repos
-            echo 'FreeBSD: { url: "pkg+http://pkg.FreeBSD.org/\${ABI}/latest" }' > /tmp/FreeBSD.conf
-            sudo cp /tmp/FreeBSD.conf /usr/local/etc/pkg/repos/FreeBSD.conf
-            sudo pkg install -y git
-            sudo git clone --depth=1 https://git.FreeBSD.org/ports.git /usr/ports
-            sudo pkg install -y `make -C /usr/ports/www/vaultwarden-web_vault build-depends-list | awk '{gsub(/^.*\//,"");ORS=FS;}1; END{print "\n"}'`
-            sudo make -C /usr/ports/www/vaultwarden-web_vault install BATCH=yes
-            sudo pkg create -o /usr/ports/packages/All vaultwarden_web-vault
-            sudo pkg install -y `make -C /usr/ports/security/vaultwarden build-depends-list | awk '{gsub(/^.*\//,"");ORS=FS;}1; END{print "\n"}'`
-            sudo make -C /usr/ports/security/vaultwarden install BATCH=yes
-            sudo pkg create -o /usr/ports/packages/All vaultwarden
-            sudo pkg repo /usr/ports/packages
-            sudo cp -R /usr/ports/packages "${GITHUB_WORKSPACE}/repo"
-            sudo chown -R "${GITHUB_WORKSPACE}/repo"
+            mkdir -p /usr/local/etc/pkg/repos
+            echo 'FreeBSD: { url: "pkg+http://pkg.FreeBSD.org/${ABI}/latest" }' > /usr/local/etc/pkg/repos/FreeBSD.conf
+            set -e -x
+            git clone --depth=1 https://git.FreeBSD.org/ports.git /usr/ports
+            pkg install -y `make -C /usr/ports/www/vaultwarden-web_vault build-depends-list | awk '{gsub(/^.*\//,"");ORS=FS;}1; END{print "\n"}'`
+            make -C /usr/ports/www/vaultwarden-web_vault install BATCH=yes
+            pkg create -o /usr/ports/packages/All vaultwarden_web-vault
+            pkg install -y `make -C /usr/ports/security/vaultwarden build-depends-list | awk '{gsub(/^.*\//,"");ORS=FS;}1; END{print "\n"}'`
+            make -C /usr/ports/security/vaultwarden install BATCH=yes
+            pkg create -o /usr/ports/packages/All vaultwarden
+            pkg repo /usr/ports/packages
+            cp -R /usr/ports/packages "${GITHUB_WORKSPACE}/repo"
       - name: temp control
         shell: sh
         run: |
