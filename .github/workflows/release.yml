@@ -12,6 +12,7 @@ jobs:
         arch: [x86-64, arm64]
         os: [freebsd]
         version:
+          - '14.0'
           - '13.3'
           - '13.2'
           - '13.1'
@@ -20,6 +21,8 @@ jobs:
           - '12.2'
         exclude:
           - version: '12.2'
+            arch: arm64
+          - version: '14.0'
             arch: arm64
     steps:
       - uses: actions/checkout@v4
@@ -35,18 +38,18 @@ jobs:
           version: ${{ matrix.version }}
           shell: sh
           run: |
-            mkdir -p /usr/local/etc/pkg/repos
-            echo 'FreeBSD: { url: "pkg+http://pkg.FreeBSD.org/${ABI}/latest" }' > /usr/local/etc/pkg/repos/FreeBSD.conf
-            pkg install -y git
-            git clone https://git.FreeBSD.org/ports.git /usr/ports
-            pkg install -y `make -C /usr/ports/www/vaultwarden-web_vault build-depends-list | awk '{gsub(/^.*\//,"");ORS=FS;}1; END{print "\n"}'`
-            make -C /usr/ports/www/vaultwarden-web_vault install BATCH=yes
-            pkg create -o /usr/ports/packages/All vaultwarden_web-vault
-            pkg install -y `make -C /usr/ports/security/vaultwarden build-depends-list | awk '{gsub(/^.*\//,"");ORS=FS;}1; END{print "\n"}'`
-            make -C /usr/ports/security/vaultwarden install BATCH=yes
-            pkg create -o /usr/ports/packages/All vaultwarden
-            pkg repo /usr/ports/packages
-            cp -R /usr/ports/packages ~/repo
+            sudo mkdir -p /usr/local/etc/pkg/repos
+            sudo echo 'FreeBSD: { url: "pkg+http://pkg.FreeBSD.org/${ABI}/latest" }' > /usr/local/etc/pkg/repos/FreeBSD.conf
+            sudo pkg install -y git
+            sudo git clone https://git.FreeBSD.org/ports.git /usr/ports
+            sudo pkg install -y `make -C /usr/ports/www/vaultwarden-web_vault build-depends-list | awk '{gsub(/^.*\//,"");ORS=FS;}1; END{print "\n"}'`
+            sudo make -C /usr/ports/www/vaultwarden-web_vault install BATCH=yes
+            sudo pkg create -o /usr/ports/packages/All vaultwarden_web-vault
+            sudo pkg install -y `make -C /usr/ports/security/vaultwarden build-depends-list | awk '{gsub(/^.*\//,"");ORS=FS;}1; END{print "\n"}'`
+            sudo make -C /usr/ports/security/vaultwarden install BATCH=yes
+            sudo pkg create -o /usr/ports/packages/All vaultwarden
+            sudo pkg repo /usr/ports/packages
+            sudo cp -R /usr/ports/packages ~/repo
       - name: Build with vmactions
         if: ${{ matrix.version == '14.0' }}
         uses: vmactions/freebsd-vm@v1
