@@ -4,13 +4,11 @@ on:
 
 jobs:
   build:
-    name: Build ${{ matrix.os }} ${{ matrix.version }} ${{ matrix.arch }}
+    name: Build ${{ matrix.version }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        arch: [x86-64, arm64]
-        os: [freebsd]
         version:
           - '14.0'
           - '13.3'
