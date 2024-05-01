@@ -36,8 +36,9 @@ jobs:
           shell: bash
           run: |
             sudo -u root sh <<EOF
+            set -x
             mkdir -p /usr/local/etc/pkg/repos
-            echo 'FreeBSD: { url: "pkg+http://pkg.FreeBSD.org/${ABI}/latest" }' > /usr/local/etc/pkg/repos/FreeBSD.conf
+            echo 'FreeBSD: { url: "pkg+http://pkg.FreeBSD.org/\${ABI}/latest" }' > /usr/local/etc/pkg/repos/FreeBSD.conf
             pkg install -y git
             git clone --depth=1 https://git.FreeBSD.org/ports.git /usr/ports
             pkg install -y `make -C /usr/ports/www/vaultwarden-web_vault build-depends-list | awk '{gsub(/^.*\//,"");ORS=FS;}1; END{print "\n"}'`
