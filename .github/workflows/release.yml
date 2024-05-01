@@ -14,6 +14,10 @@ jobs:
           - '13.3'
           - '13.2'
           - '12.4'
+        include:
+          - repo: http://pkg.FreeBSD.org/${ABI}/latest
+          - repo: http://mirror.sg.gs/freebsd-pkg/${ABI}/latest
+            version: '12.4'
     steps:
       - uses: actions/checkout@v4
       - name: Setup
@@ -27,11 +31,11 @@ jobs:
           usesh: true
           prepare: |
             mkdir -p /usr/local/etc/pkg/repos
-            echo 'FreeBSD: { url: "pkg+http://pkg.FreeBSD.org/${ABI}/latest" }' > /usr/local/etc/pkg/repos/FreeBSD.conf
+            echo 'FreeBSD: { url: "pkg+${{ matrix.repo }}" }' > /usr/local/etc/pkg/repos/FreeBSD.conf
             pkg install -y git
           run: |
             mkdir -p /usr/local/etc/pkg/repos
-            echo 'FreeBSD: { url: "pkg+http://pkg.FreeBSD.org/${ABI}/latest" }' > /usr/local/etc/pkg/repos/FreeBSD.conf
+            echo 'FreeBSD: { url: "pkg+${{ matrix.repo }}" }' > /usr/local/etc/pkg/repos/FreeBSD.conf
             set -e -x
             git clone --depth=1 https://git.FreeBSD.org/ports.git /usr/ports
             pkg install -y `make -C /usr/ports/www/vaultwarden-web_vault build-depends-list | awk '{gsub(/^.*\//,"");ORS=FS;}1; END{print "\n"}'`
