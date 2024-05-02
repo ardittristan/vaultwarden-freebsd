@@ -21,18 +21,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Setup
+        shell: bash
         run: |
           mkdir repo
+          sed -i "s/^export VM_INSTALL_CMD$/export VM_INSTALL_CMD=\$'mkdir -p \/usr\/local\/etc\/pkg\/repos \&\& echo \\\\'FreeBSD: { url: \"pkg+"'http:\/\/mirror.sg.gs\/freebsd-pkg\/${ABI}\/latest'"\" }\\\\' > \/usr\/local\/etc\/pkg\/repos\/FreeBSD.conf \&\& pkg  install  -y '/" /home/runner/work/_actions/vmactions/freebsd-vm/v*/run.sh
       - name: Build
         uses: vmactions/freebsd-vm@v1
         with:
           release: ${{ matrix.version }}
-          sync: no
+          sync: sshfs
           usesh: true
           prepare: |
             mkdir -p /usr/local/etc/pkg/repos
             echo 'FreeBSD: { url: "pkg+${{ matrix.repo }}" }' > /usr/local/etc/pkg/repos/FreeBSD.conf
-            bash -c "cd /home/runner/work/_actions/vmactions/freebsd-vm/v*/ && ( bash run.sh runSSHFSInVM )"
             pkg install -y git
           run: |
             mkdir -p /usr/local/etc/pkg/repos
