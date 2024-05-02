@@ -46,10 +46,10 @@ jobs:
             set -e -x
             git clone --depth=1 https://git.FreeBSD.org/ports.git /usr/ports
             pkg install -y `make -C /usr/ports/www/vaultwarden-web_vault build-depends-list | awk '{gsub(/^.*\//,"");ORS=FS;}1; END{print "\n"}'`
-            make -C /usr/ports/www/vaultwarden-web_vault install BATCH=yes ALLOW_UNSUPPORTED_SYSTEM=yes
+            make -C /usr/ports/www/vaultwarden-web_vault install BATCH=yes ALLOW_UNSUPPORTED_SYSTEM=yes FORCE_PKG_REGISTER=yes
             pkg create -o /usr/ports/packages/All vaultwarden_web-vault
             pkg install -y `make -C /usr/ports/security/vaultwarden build-depends-list | awk '{gsub(/^.*\//,"");ORS=FS;}1; END{print "\n"}'`
-            make -C /usr/ports/security/vaultwarden install BATCH=yes ALLOW_UNSUPPORTED_SYSTEM=yes
+            make -C /usr/ports/security/vaultwarden install BATCH=yes ALLOW_UNSUPPORTED_SYSTEM=yes FORCE_PKG_REGISTER=yes
             pkg create -o /usr/ports/packages/All vaultwarden
             pkg repo /usr/ports/packages
             cp -R /usr/ports/packages "${GITHUB_WORKSPACE}/repo"
