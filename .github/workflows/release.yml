@@ -24,7 +24,7 @@ jobs:
           - repo: http://mirror.sg.gs/freebsd-pkg/${ABI}/latest
             repoesc: http:\/\/mirror.sg.gs\/freebsd-pkg\/${ABI}\/latest
             repoprefix: ""
-            gitargs: "--depth=1 --branch release/12.4.0"
+            gitargs: "--depth=1 --branch=release/12.4.0"
             version: '12.4'
     steps:
       - uses: actions/checkout@v4
