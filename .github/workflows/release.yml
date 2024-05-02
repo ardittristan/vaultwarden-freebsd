@@ -24,7 +24,7 @@ jobs:
           - repo: http://mirror.sg.gs/freebsd-pkg/${ABI}/latest
             repoesc: http:\/\/mirror.sg.gs\/freebsd-pkg\/${ABI}\/latest
             repoprefix: ""
-            makeargs: 'ALLOW_UNSUPPORTED_SYSTEM=yes DEFAULT_VERSIONS="rust=`pkg rquery %v rust`"'
+            makeargs: "ALLOW_UNSUPPORTED_SYSTEM=yes CARGO_BUILDDEP=any-version"
             version: '12.4'
     steps:
       - uses: actions/checkout@v4
