@@ -16,7 +16,11 @@ jobs:
           - '12.4'
         include:
           - repo: http://pkg.FreeBSD.org/${ABI}/latest
+            repoesc: http:\/\/pkg.FreeBSD.org\/${ABI}\/latest
+            mirrortype: srv
           - repo: http://mirror.sg.gs/freebsd-pkg/${ABI}/latest
+            repoesc: http:\/\/mirror.sg.gs\/freebsd-pkg\/${ABI}\/latest
+            mirrortype: none
             version: '12.4'
     steps:
       - uses: actions/checkout@v4
@@ -24,7 +28,7 @@ jobs:
         shell: bash
         run: |
           mkdir repo
-          sed -i "s/^export VM_INSTALL_CMD$/export VM_INSTALL_CMD=\$'mkdir -p \/usr\/local\/etc\/pkg\/repos \&\& echo \\\\'FreeBSD: { url: \"pkg+"'http:\/\/mirror.sg.gs\/freebsd-pkg\/${ABI}\/latest'"\" }\\\\' > \/usr\/local\/etc\/pkg\/repos\/FreeBSD.conf \&\& pkg  install  -y '/" /home/runner/work/_actions/vmactions/freebsd-vm/v*/run.sh
+          sed -i "s/^export VM_INSTALL_CMD$/export VM_INSTALL_CMD=\$'mkdir -p \/usr\/local\/etc\/pkg\/repos \&\& echo \\\\'FreeBSD: { mirror_type: \"${{ matrix.mirrortype }}\", url: \"pkg+"'${{ matrix.repoesc }}'"\" }\\\\' > \/usr\/local\/etc\/pkg\/repos\/FreeBSD.conf \&\& pkg  install  -y '/" /home/runner/work/_actions/vmactions/freebsd-vm/v*/run.sh
           echo "$(</home/runner/work/_actions/vmactions/freebsd-vm/v*/run.sh )"
       - name: Build
         uses: vmactions/freebsd-vm@v1
