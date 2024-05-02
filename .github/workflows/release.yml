@@ -19,7 +19,7 @@ jobs:
           - repoesc: http:\/\/pkg.FreeBSD.org\/${ABI}\/latest
           - repoprefix: "pkg+"
           - makeargs: ""
-          - beforebuild: "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --help"
+          - beforebuild: ""
           - afterawk: ""
 
           
