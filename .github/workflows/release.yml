@@ -19,12 +19,16 @@ jobs:
           - repoesc: http:\/\/pkg.FreeBSD.org\/${ABI}\/latest
           - repoprefix: "pkg+"
           - makeargs: ""
+          - beforebuild: "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --help"
+          - afterawk: ""
 
           
           - repo: http://mirror.sg.gs/freebsd-pkg/${ABI}/latest
             repoesc: http:\/\/mirror.sg.gs\/freebsd-pkg\/${ABI}\/latest
             repoprefix: ""
-            makeargs: "ALLOW_UNSUPPORTED_SYSTEM=yes CARGO_BUILDDEP=any-version"
+            makeargs: "ALLOW_UNSUPPORTED_SYSTEM=yes CARGO_BUILDDEP=no CARGO=~/.cargo/bin/cargo RUSTC=~/.cargo/bin/rustc RUSTDOC=~/.cargo/bin/rustdoc"
+            beforebuild: "pkg install -y curl && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y"
+            afterawk: "| '{gsub(/rust /,\u0022\u0022)}1;'"
             version: '12.4'
     steps:
       - uses: actions/checkout@v4
@@ -49,10 +53,11 @@ jobs:
             echo 'FreeBSD: { url: "${{ matrix.mirrorprefix }}${{ matrix.repo }}" }' > /usr/local/etc/pkg/repos/FreeBSD.conf
             set -e -x
             git clone --depth=1 https://git.FreeBSD.org/ports.git /usr/ports
-            pkg install -y `make -C /usr/ports/www/vaultwarden-web_vault build-depends-list | awk '{gsub(/^.*\//,"");ORS=FS;}1; END{print "\n"}'`
+            ${{ matrix.beforebuild }}
+            pkg install -y `make -C /usr/ports/www/vaultwarden-web_vault build-depends-list | awk '{gsub(/^.*\//,"");ORS=FS;}1; END{print "\n"}' ${{ matrix.afterawk }}`
             make -C /usr/ports/www/vaultwarden-web_vault install BATCH=yes ${{ matrix.makeargs }}
             pkg create -o /usr/ports/packages/All vaultwarden_web-vault
-            pkg install -y `make -C /usr/ports/security/vaultwarden build-depends-list | awk '{gsub(/^.*\//,"");ORS=FS;}1; END{print "\n"}'`
+            pkg install -y `make -C /usr/ports/security/vaultwarden build-depends-list | awk '{gsub(/^.*\//,"");ORS=FS;}1; END{print "\n"}' ${{ matrix.afterawk }}`
             make -C /usr/ports/security/vaultwarden install BATCH=yes ${{ matrix.makeargs }}
             pkg create -o /usr/ports/packages/All vaultwarden
             pkg repo /usr/ports/packages
