@@ -26,7 +26,7 @@ jobs:
           - repo: http://mirror.sg.gs/freebsd-pkg/${ABI}/latest
             repoesc: http:\/\/mirror.sg.gs\/freebsd-pkg\/${ABI}\/latest
             repoprefix: ""
-            makeargs: "ALLOW_UNSUPPORTED_SYSTEM=yes CARGO_BUILDDEP=no CARGO=~/.cargo/bin/cargo RUSTC=~/.cargo/bin/rustc RUSTDOC=~/.cargo/bin/rustdoc"
+            makeargs: "ALLOW_UNSUPPORTED_SYSTEM=yes CARGO_BUILDDEP=no CARGO=$HOME/.cargo/bin/cargo RUSTC=$HOME/.cargo/bin/rustc RUSTDOC=$HOME/.cargo/bin/rustdoc"
             beforebuild: "pkg install -y curl && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y"
             afterawk: "| awk '{gsub(/rust /,\u0022\u0022)}1;'"
             version: '12.4'
