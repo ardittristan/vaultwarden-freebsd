@@ -27,11 +27,12 @@ jobs:
         uses: vmactions/freebsd-vm@v1
         with:
           release: ${{ matrix.version }}
-          sync: sshfs
+          sync: no
           usesh: true
           prepare: |
             mkdir -p /usr/local/etc/pkg/repos
             echo 'FreeBSD: { url: "pkg+${{ matrix.repo }}" }' > /usr/local/etc/pkg/repos/FreeBSD.conf
+            bash -c "cd /home/runner/work/_actions/vmactions/freebsd-vm/v*/ && ( bash run.sh runSSHFSInVM )"
             pkg install -y git
           run: |
             mkdir -p /usr/local/etc/pkg/repos
