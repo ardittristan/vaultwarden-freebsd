@@ -22,7 +22,7 @@ jobs:
           - beforebuild: ""
           - afterawk: ""
 
-          
+
           - repo: http://mirror.sg.gs/freebsd-pkg/${ABI}/latest
             repoesc: http:\/\/mirror.sg.gs\/freebsd-pkg\/${ABI}\/latest
             repoprefix: ""
@@ -36,7 +36,7 @@ jobs:
         shell: bash
         run: |
           mkdir repo
-          sed -i "s/^export VM_INSTALL_CMD$/export VM_INSTALL_CMD=\$'mkdir -p \/usr\/local\/etc\/pkg\/repos \&\& echo \\\\'FreeBSD: { url: \"${{ matrix.mirrorprefix }}"'${{ matrix.repoesc }}'"\" }\\\\' > \/usr\/local\/etc\/pkg\/repos\/FreeBSD.conf \&\& pkg  install  -y '/" /home/runner/work/_actions/vmactions/freebsd-vm/v*/run.sh
+          sed -i "s/^export VM_INSTALL_CMD$/export VM_INSTALL_CMD=\$'mkdir -p \/usr\/local\/etc\/pkg\/repos \&\& echo \\\\'FreeBSD: { url: \"${{ matrix.repoprefix }}"'${{ matrix.repoesc }}'"\" }\\\\' > \/usr\/local\/etc\/pkg\/repos\/FreeBSD.conf \&\& pkg  install  -y '/" /home/runner/work/_actions/vmactions/freebsd-vm/v*/run.sh
           echo "$(</home/runner/work/_actions/vmactions/freebsd-vm/v*/run.sh )"
       - name: Build
         uses: vmactions/freebsd-vm@v1
@@ -46,11 +46,11 @@ jobs:
           usesh: true
           prepare: |
             mkdir -p /usr/local/etc/pkg/repos
-            echo 'FreeBSD: { url: "${{ matrix.mirrorprefix }}${{ matrix.repo }}" }' > /usr/local/etc/pkg/repos/FreeBSD.conf
+            echo 'FreeBSD: { url: "${{ matrix.repoprefix }}${{ matrix.repo }}" }' > /usr/local/etc/pkg/repos/FreeBSD.conf
             pkg install -y git
           run: |
             mkdir -p /usr/local/etc/pkg/repos
-            echo 'FreeBSD: { url: "${{ matrix.mirrorprefix }}${{ matrix.repo }}" }' > /usr/local/etc/pkg/repos/FreeBSD.conf
+            echo 'FreeBSD: { url: "${{ matrix.repoprefix }}${{ matrix.repo }}" }' > /usr/local/etc/pkg/repos/FreeBSD.conf
             set -e -x
             git clone --depth=1 https://git.FreeBSD.org/ports.git /usr/ports
             ${{ matrix.beforebuild }}
