@@ -1,11 +1,62 @@
 name: Create release
 on:
   workflow_dispatch:
+    inputs:
+      always_build:
+        type: boolean
+        default: false
+        description: Build regardless of current status
 
 jobs:
+  shouldbuild:
+    name: Should Build
+    runs-on: ubuntu-latest
+    outputs:
+      result: ${{ steps.checker.outputs.result }}
+    permissions: 
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/github-script@v7
+        id: checker
+        with:
+          retries: 3
+          # https://replit.com/@ardittristan/UntriedInternationalEngineering#index.js
+          script: |
+            const fs = require('fs');
+
+            if (
+              !fs.existsSync('${{ github.workspace }}/store/lastCommitChecked') ||
+              !fs.existsSync('${{ github.workspace }}/store/lastWebRelease')
+            ) return true;
+          
+            const lastCommit = fs.readFileSync('${{ github.workspace }}/store/lastCommitChecked').trim();
+            const lastWebRelease = fs.readFileSync('${{ github.workspace }}/store/lastWebRelease').trim();
+          
+            const currCommit = (
+              await github.rest.repos.listCommits(
+                {owner: "dani-garcia", repo: "vaultwarden", per_page: 1}
+              )
+            ).data[0].sha.substring(0, 8);
+          
+            if (lastCommit !== currCommit)
+              return true;
+          
+            const currWebRelease = (
+              await github.rest.repos.getLatestRelease(
+                {owner: "dani-garcia", repo: "bw_web_builds"}
+              )
+            ).data.tag_name;
+          
+            return (lastWebRelease !== currWebRelease);
+
   build:
     name: Build ${{ matrix.version }}
+    needs: [shouldbuild]
+    if: ${{ needs.shouldbuild.outputs.result || inputs.always_build }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     strategy:
       fail-fast: false
       matrix:
@@ -17,25 +68,36 @@ jobs:
         include:
           - repo: http://pkg.FreeBSD.org/${ABI}/latest
           - repoesc: http:\/\/pkg.FreeBSD.org\/${ABI}\/latest
-          - repoprefix: "pkg+"
-          - makeargs: ""
-          - beforebuild: ""
-          - afterawk: ""
+          - repoprefix: 'pkg+'
+          - abiversion: 'latest'
+          - makeargs: ''
+          - beforebuild: ''
+          - afterawk: ''
 
+          - version: '14.0'
+            abi: 'FreeBSD:14:amd64'
 
-          - repo: http://mirror.sg.gs/freebsd-pkg/${ABI}/latest
+          - version: '13.3'
+            abi: 'FreeBSD:13:amd64'
+
+          - version: '13.2'
+            abi: 'FreeBSD:13:amd64'
+            abiversion: '13.2'
+
+          - version: '12.4'
+            abi: 'FreeBSD:12:amd64'
+            repo: http://mirror.sg.gs/freebsd-pkg/${ABI}/latest
             repoesc: http:\/\/mirror.sg.gs\/freebsd-pkg\/${ABI}\/latest
-            repoprefix: ""
-            makeargs: "ALLOW_UNSUPPORTED_SYSTEM=yes CARGO_BUILDDEP=no CARGO=${HOME}/.cargo/bin/cargo RUSTC=${HOME}/.cargo/bin/rustc RUSTDOC=${HOME}/.cargo/bin/rustdoc"
+            repoprefix: ''
+            makeargs: 'ALLOW_UNSUPPORTED_SYSTEM=yes CARGO_BUILDDEP=no CARGO=${HOME}/.cargo/bin/cargo RUSTC=${HOME}/.cargo/bin/rustc RUSTDOC=${HOME}/.cargo/bin/rustdoc'
             beforebuild: "pkg install -y curl && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y"
             afterawk: "| awk '{gsub(/rust /,\u0022\u0022)}1;'"
-            version: '12.4'
     steps:
       - uses: actions/checkout@v4
       - name: Setup
         shell: bash
         run: |
-          mkdir repo
+          mkdir -p ${{ github.workspace }}/repo/${{ matrix.abi }}/${{ matrix.abiversion }}/All
           sed -i "s/^export VM_INSTALL_CMD$/export VM_INSTALL_CMD=\$'mkdir -p \/usr\/local\/etc\/pkg\/repos \&\& echo \\\\'FreeBSD: { url: \"${{ matrix.repoprefix }}"'${{ matrix.repoesc }}'"\" }\\\\' > \/usr\/local\/etc\/pkg\/repos\/FreeBSD.conf \&\& pkg  install  -y '/" /home/runner/work/_actions/vmactions/freebsd-vm/v*/run.sh
           echo "$(</home/runner/work/_actions/vmactions/freebsd-vm/v*/run.sh )"
       - name: Build
@@ -56,13 +118,19 @@ jobs:
             ${{ matrix.beforebuild }}
             pkg install -y `make -C /usr/ports/www/vaultwarden-web_vault build-depends-list | awk '{gsub(/^.*\//,"");ORS=FS;}1; END{print "\n"}' ${{ matrix.afterawk }}`
             make -C /usr/ports/www/vaultwarden-web_vault install BATCH=yes ${{ matrix.makeargs }}
-            pkg create -o /usr/ports/packages/All vaultwarden_web-vault
+            pkg create -o "${GITHUB_WORKSPACE}/repo/${{ matrix.abi }}/${{ matrix.abiversion }}/All" vaultwarden_web-vault
             pkg install -y `make -C /usr/ports/security/vaultwarden build-depends-list | awk '{gsub(/^.*\//,"");ORS=FS;}1; END{print "\n"}' ${{ matrix.afterawk }}`
             make -C /usr/ports/security/vaultwarden install BATCH=yes ${{ matrix.makeargs }}
-            pkg create -o /usr/ports/packages/All vaultwarden
-            pkg repo /usr/ports/packages
-            cp -R /usr/ports/packages "${GITHUB_WORKSPACE}/repo"
-      - name: temp control
-        shell: sh
-        run: |
-          echo `ls -R repo`
+            pkg create -o "${GITHUB_WORKSPACE}/repo/${{ matrix.abi }}/${{ matrix.abiversion }}/All" vaultwarden
+            pkg repo "${GITHUB_WORKSPACE}/repo/${{ matrix.abi }}/${{ matrix.abiversion }}"
+            for f in $(find . -type l); do cp -f $(readlink "$f") "$f"; done
+      - name: Commit
+        uses: github-actions-x/commit@v2.9
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: Update ${{ matrix.version }}
+          files: ${{ github.workspace }}/repo/${{ matrix.abi }}/${{ matrix.abiversion }}/
+          rebase: true
+          force-add: true
+          name: GitHub Actions
+          email: actions@github.com
