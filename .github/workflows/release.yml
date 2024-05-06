@@ -6,10 +6,14 @@ on:
         type: boolean
         default: false
         description: Build regardless of current status
-      test_build:
+      draft_build:
         type: boolean
         default: false
         description: Create draft release instead of normal release
+      artifact_build:
+        type: boolean
+        default: false
+        description: Create artifacts instead of releases
 
 concurrency: 
   group: release-builder
@@ -188,6 +192,7 @@ jobs:
           name: GitHub Actions
           email: actions@github.com
       - name: Release Web_vault
+        if: ${{ !inputs.artifact_build }}
         uses: ncipollo/release-action@v1
         with:
           allowUpdates: true
@@ -196,8 +201,9 @@ jobs:
           tag: vaultwarden_web-vault-${{ needs.shouldbuild.outputs.currWebRelease }}
           omitBody: true
           commit: ${{ github.ref_name }}
-          draft: ${{ !!inputs.test_build }}
+          draft: ${{ !!inputs.draft_build }}
       - name: Release Vaultwarden
+        if: ${{ !inputs.artifact_build }}
         uses: ncipollo/release-action@v1
         with:
           allowUpdates: true
@@ -206,20 +212,27 @@ jobs:
           tag: vaultwarden-${{ needs.shouldbuild.outputs.currRelease }}_${{ github.run_number }}-${{ needs.shouldbuild.outputs.currCommit }}
           omitBody: true
           commit: ${{ github.ref_name }}
-          draft: ${{ !!inputs.test_build }}
+          draft: ${{ !!inputs.draft_build }}
       - run: |
-          mv ${{ github.workspace }}/work/*vaultwarden-*.pkg ${{ github.workspace }}/work/vaultwarden.pkg
-          mv ${{ github.workspace }}/work/*vaultwarden_web-vault-*.pkg ${{ github.workspace }}/work/vaultwarden_web-vault.pkg
+          mv ${{ github.workspace }}/work/*vaultwarden-*.pkg ${{ github.workspace }}/work/freebsd${{ matrix.version }}_vaultwarden.pkg
+          mv ${{ github.workspace }}/work/*vaultwarden_web-vault-*.pkg ${{ github.workspace }}/work/freebsd${{ matrix.version }}_vaultwarden_web-vault.pkg
       - name: Update Latest
-        if: ${{ !inputs.test_build }}
+        if: ${{ !inputs.draft_build && !inputs.artifact_build }}
         uses: ncipollo/release-action@v1
         with:
           allowUpdates: true
-          artifacts: "${{ github.workspace }}/work/vaultwarden.pkg,${{ github.workspace }}/work/vaultwarden_web-vault.pkg"
+          artifacts: "${{ github.workspace }}/work/freebsd${{ matrix.version }}_vaultwarden.pkg,${{ github.workspace }}/work/freebsd${{ matrix.version }}_vaultwarden_web-vault.pkg"
           makeLatest: true
           tag: latest-release
           omitBody: true
           commit: ${{ github.ref_name }}
+      - name: Upload Artifacts
+        if: ${{ inputs.artifact_build }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: freebsd${{ matrix.version }}
+          path: ${{ github.workspace }}/work/*
+          retention-days: 7
       - name: Release lock
         if: ${{ success() || failure() }}
         uses: rakles/matrix-lock@v1.0.0
@@ -241,6 +254,7 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    if: ${{ !inputs.draft_build && !inputs.artifact_build }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
@@ -256,6 +270,7 @@ jobs:
     needs: [build,shouldbuild]
     permissions: 
       contents: write
+    if: ${{ !inputs.draft_build && !inputs.artifact_build }}
     steps:
       - uses: actions/checkout@v4
       - name: Update store
