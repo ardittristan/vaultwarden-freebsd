@@ -6,13 +6,24 @@ on:
         type: boolean
         default: false
         description: Build regardless of current status
+      test_build:
+        type: boolean
+        default: false
+        description: Create draft release instead of normal release
+
+concurrency: 
+  group: release-builder
+  cancel-in-progress: false
 
 jobs:
   shouldbuild:
     name: Should Build
     runs-on: ubuntu-latest
     outputs:
-      result: ${{ steps.checker.outputs.result }}
+      result: ${{ fromJson(steps.checker.outputs.result).result }}
+      currCommit: ${{ fromJson(steps.checker.outputs.result).currCommit }}
+      currRelease: ${{ fromJson(steps.checker.outputs.result).currRelease }}
+      currWebRelease: ${{ fromJson(steps.checker.outputs.result).currWebRelease }}
     permissions: 
       contents: read
     steps:
@@ -23,32 +34,54 @@ jobs:
           retries: 3
           # https://replit.com/@ardittristan/UntriedInternationalEngineering#index.js
           script: |
-            const fs = require('fs');
+            const fs = require("fs");
+
+            const currCommit = (
+              await github.rest.repos.listCommits({
+                owner: "dani-garcia",
+                repo: "vaultwarden",
+                per_page: 1,
+              })
+            ).data[0].sha.substring(0, 8);
+
+            const currRelease = (
+              await github.rest.repos.getLatestRelease({
+                owner: "dani-garcia",
+                repo: "vaultwarden",
+              })
+            ).data.tag_name;
+
+            const currWebRelease = (
+              await github.rest.repos.getLatestRelease({
+                owner: "dani-garcia",
+                repo: "bw_web_builds",
+              })
+            ).data.tag_name;
 
             if (
-              !fs.existsSync('${{ github.workspace }}/store/lastCommitChecked') ||
-              !fs.existsSync('${{ github.workspace }}/store/lastWebRelease')
-            ) return true;
-          
-            const lastCommit = fs.readFileSync('${{ github.workspace }}/store/lastCommitChecked').trim();
-            const lastWebRelease = fs.readFileSync('${{ github.workspace }}/store/lastWebRelease').trim();
-          
-            const currCommit = (
-              await github.rest.repos.listCommits(
-                {owner: "dani-garcia", repo: "vaultwarden", per_page: 1}
-              )
-            ).data[0].sha.substring(0, 8);
-          
-            if (lastCommit !== currCommit)
-              return true;
-          
-            const currWebRelease = (
-              await github.rest.repos.getLatestRelease(
-                {owner: "dani-garcia", repo: "bw_web_builds"}
-              )
-            ).data.tag_name;
-          
-            return (lastWebRelease !== currWebRelease);
+              !fs.existsSync("${{ github.workspace }}/store/lastCommitChecked") ||
+              !fs.existsSync("${{ github.workspace }}/store/lastWebRelease")
+            )
+              return {
+                result: true,
+                currCommit,
+                currRelease,
+                currWebRelease,
+              };
+
+            const lastCommit = fs
+              .readFileSync("${{ github.workspace }}/store/lastCommitChecked")
+              .trim();
+            const lastWebRelease = fs
+              .readFileSync("${{ github.workspace }}/store/lastWebRelease")
+              .trim();
+
+            return {
+              result: currCommit !== lastCommit || currWebRelease !== lastWebRelease,
+              currCommit,
+              currRelease,
+              currWebRelease,
+            };
 
   build:
     name: Build ${{ matrix.version }}
@@ -60,6 +93,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        main-job:
+          - '14.0'
+        versions:
+          - '14.0,13.3,13.2,12.4'
         version:
           - '14.0'
           - '13.3'
@@ -98,8 +135,15 @@ jobs:
         shell: bash
         run: |
           mkdir -p ${{ github.workspace }}/repo/${{ matrix.abi }}/${{ matrix.abiversion }}/All
+          mkdir "${GITHUB_WORKSPACE}/work"
           sed -i "s/^export VM_INSTALL_CMD$/export VM_INSTALL_CMD=\$'mkdir -p \/usr\/local\/etc\/pkg\/repos \&\& echo \\\\'FreeBSD: { url: \"${{ matrix.repoprefix }}"'${{ matrix.repoesc }}'"\" }\\\\' > \/usr\/local\/etc\/pkg\/repos\/FreeBSD.conf \&\& pkg  install  -y '/" /home/runner/work/_actions/vmactions/freebsd-vm/v*/run.sh
           echo "$(</home/runner/work/_actions/vmactions/freebsd-vm/v*/run.sh )"
+      - name: Setup Lock
+        if: ${{ matrix.version == matrix.main-job }}
+        uses: rakles/matrix-lock@v1.0.0
+        with:
+          step: init
+          order: ${{ matrix.versions }}
       - name: Build
         uses: vmactions/freebsd-vm@v1
         with:
@@ -118,12 +162,21 @@ jobs:
             ${{ matrix.beforebuild }}
             pkg install -y `make -C /usr/ports/www/vaultwarden-web_vault build-depends-list | awk '{gsub(/^.*\//,"");ORS=FS;}1; END{print "\n"}' ${{ matrix.afterawk }}`
             make -C /usr/ports/www/vaultwarden-web_vault install BATCH=yes ${{ matrix.makeargs }}
-            pkg create -o "${GITHUB_WORKSPACE}/repo/${{ matrix.abi }}/${{ matrix.abiversion }}/All" vaultwarden_web-vault
+            pkg create -o "${GITHUB_WORKSPACE}/work" vaultwarden_web-vault
             pkg install -y `make -C /usr/ports/security/vaultwarden build-depends-list | awk '{gsub(/^.*\//,"");ORS=FS;}1; END{print "\n"}' ${{ matrix.afterawk }}`
             make -C /usr/ports/security/vaultwarden install BATCH=yes ${{ matrix.makeargs }}
-            pkg create -o "${GITHUB_WORKSPACE}/repo/${{ matrix.abi }}/${{ matrix.abiversion }}/All" vaultwarden
+            pkg create -o "${GITHUB_WORKSPACE}/work" vaultwarden
+            cp "${GITHUB_WORKSPACE}/work/*" "${GITHUB_WORKSPACE}/repo/${{ matrix.abi }}/${{ matrix.abiversion }}/All"
             pkg repo "${GITHUB_WORKSPACE}/repo/${{ matrix.abi }}/${{ matrix.abiversion }}"
-            for f in $(find . -type l); do cp -f $(readlink "$f") "$f"; done
+            for f in $(find repo -type l); do cp -f $(readlink "$f") "$f"; done
+            for f in "${GITHUB_WORKSPACE}/work/*"; do mv "$f" "freebsd${{ matrix.version }}_$f"
+      - name: Wait for lock
+        uses: rakles/matrix-lock@v1.0.0
+        with:
+          step: wait
+          id: ${{ matrix.version }}
+          retry-delay: 15
+          retry-count: 120
       - name: Commit
         uses: github-actions-x/commit@v2.9
         with:
@@ -131,6 +184,90 @@ jobs:
           commit-message: Update ${{ matrix.version }}
           files: ${{ github.workspace }}/repo/${{ matrix.abi }}/${{ matrix.abiversion }}/
           rebase: true
+          force-add: true
+          name: GitHub Actions
+          email: actions@github.com
+      - name: Release Web_vault
+        uses: ncipollo/release-action@v1
+        with:
+          allowUpdates: true
+          artifacts: ${{ github.workspace }}/work/*vaultwarden_web-vault-*.pkg
+          makeLatest: false
+          tag: vaultwarden_web-vault-${{ needs.shouldbuild.outputs.currWebRelease }}
+          omitBody: true
+          commit: ${{ github.ref_name }}
+          draft: ${{ !!inputs.test_build }}
+      - name: Release Vaultwarden
+        uses: ncipollo/release-action@v1
+        with:
+          allowUpdates: true
+          artifacts: ${{ github.workspace }}/work/*vaultwarden-*.pkg
+          makeLatest: false
+          tag: vaultwarden-${{ needs.shouldbuild.outputs.currRelease }}_${{ github.run_number }}-${{ needs.shouldbuild.outputs.currCommit }}
+          omitBody: true
+          commit: ${{ github.ref_name }}
+          draft: ${{ !!inputs.test_build }}
+      - run: |
+          mv ${{ github.workspace }}/work/*vaultwarden-*.pkg ${{ github.workspace }}/work/vaultwarden.pkg
+          mv ${{ github.workspace }}/work/*vaultwarden_web-vault-*.pkg ${{ github.workspace }}/work/vaultwarden_web-vault.pkg
+      - name: Update Latest
+        if: ${{ !inputs.test_build }}
+        uses: ncipollo/release-action@v1
+        with:
+          allowUpdates: true
+          artifacts: "${{ github.workspace }}/work/vaultwarden.pkg,${{ github.workspace }}/work/vaultwarden_web-vault.pkg"
+          makeLatest: true
+          tag: latest-release
+          omitBody: true
+          commit: ${{ github.ref_name }}
+      - name: Release lock
+        if: ${{ success() || failure() }}
+        uses: rakles/matrix-lock@v1.0.0
+        with:
+          step: continue
+          id: ${{ matrix.version }}
+
+  publish:
+    name: Publish
+    runs-on: ubuntu-latest
+    needs: [build]
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    concurrency: 
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ github.workspace }}/repo/
+      - uses: actions/deploy-pages@v4
+        id: deployment
+
+  finalize:
+    name: Finalize
+    runs-on: ubuntu-latest
+    needs: [build,shouldbuild]
+    permissions: 
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update store
+        run: |
+          echo "${{ needs.shouldbuild.outputs.currCommit }}" > "${{ github.workspace }}/store/lastCommitChecked"
+          echo "${{ needs.shouldbuild.outputs.currWebRelease }}" > "${{ github.workspace }}/store/lastWebRelease"
+      - name: Commit
+        uses: github-actions-x/commit@v2.9
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: Update store
+          files: ${{ github.workspace }}/store/
           force-add: true
           name: GitHub Actions
           email: actions@github.com
