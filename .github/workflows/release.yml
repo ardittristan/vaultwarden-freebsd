@@ -170,7 +170,7 @@ jobs:
             pkg install -y `make -C /usr/ports/security/vaultwarden build-depends-list | awk '{gsub(/^.*\//,"");ORS=FS;}1; END{print "\n"}' ${{ matrix.afterawk }}`
             make -C /usr/ports/security/vaultwarden install BATCH=yes ${{ matrix.makeargs }}
             pkg create -o "${GITHUB_WORKSPACE}/work" vaultwarden
-            cp "${GITHUB_WORKSPACE}/work/*" "${GITHUB_WORKSPACE}/repo/${{ matrix.abi }}/${{ matrix.abiversion }}/All"
+            cp -RL "${GITHUB_WORKSPACE}/work/" "${GITHUB_WORKSPACE}/repo/${{ matrix.abi }}/${{ matrix.abiversion }}/All"
             pkg repo "${GITHUB_WORKSPACE}/repo/${{ matrix.abi }}/${{ matrix.abiversion }}"
             for f in $(find repo -type l); do cp -f $(readlink "$f") "$f"; done
             for f in "${GITHUB_WORKSPACE}/work/*"; do mv "$f" "freebsd${{ matrix.version }}_$f"
