@@ -172,7 +172,7 @@ jobs:
             pkg create -o "${GITHUB_WORKSPACE}/work" vaultwarden
             cp -RL "${GITHUB_WORKSPACE}/work/" "${GITHUB_WORKSPACE}/repo/${{ matrix.abi }}/${{ matrix.abiversion }}/All"
             pkg repo "${GITHUB_WORKSPACE}/repo/${{ matrix.abi }}/${{ matrix.abiversion }}"
-            for f in $(find ./repo/* -type l); do cp -f $(readlink -f %R "$f") "$f"; done
+            for f in $(find ./repo/* -type l); do cp $(readlink -f %R "$f") ./repo/tmp; rm "$f"; mv ./repo/tmp "$f"; done
             for f in "${GITHUB_WORKSPACE}/work/*"; do mv "$f" "freebsd${{ matrix.version }}_$f"
       - name: Wait for lock
         uses: rakles/matrix-lock@v1.0.0
