@@ -140,7 +140,7 @@ jobs:
         run: |
           mkdir -p ${{ github.workspace }}/repo/${{ matrix.abi }}/${{ matrix.abiversion }}/All
           mkdir "${GITHUB_WORKSPACE}/work"
-          sed -i '' "s/^export VM_INSTALL_CMD$/export VM_INSTALL_CMD=\$'mkdir -p \/usr\/local\/etc\/pkg\/repos \&\& echo \\\\'FreeBSD: { url: \"${{ matrix.repoprefix }}"'${{ matrix.repoesc }}'"\" }\\\\' > \/usr\/local\/etc\/pkg\/repos\/FreeBSD.conf \&\& pkg  install  -y '/" /home/runner/work/_actions/vmactions/freebsd-vm/v*/run.sh
+          sed -i "s/^export VM_INSTALL_CMD$/export VM_INSTALL_CMD=\$'mkdir -p \/usr\/local\/etc\/pkg\/repos \&\& echo \\\\'FreeBSD: { url: \"${{ matrix.repoprefix }}"'${{ matrix.repoesc }}'"\" }\\\\' > \/usr\/local\/etc\/pkg\/repos\/FreeBSD.conf \&\& pkg  install  -y '/" /home/runner/work/_actions/vmactions/freebsd-vm/v*/run.sh
           echo "$(</home/runner/work/_actions/vmactions/freebsd-vm/v*/run.sh )"
       - name: Setup Lock
         if: ${{ matrix.version == matrix.main-job }}
