@@ -140,7 +140,7 @@ jobs:
         run: |
           mkdir -p ${{ github.workspace }}/repo/${{ matrix.abi }}/${{ matrix.abiversion }}/All
           mkdir "${GITHUB_WORKSPACE}/work"
-          sed -i "s/^export VM_INSTALL_CMD$/export VM_INSTALL_CMD=\$'mkdir -p \/usr\/local\/etc\/pkg\/repos \&\& echo \\\\'FreeBSD: { url: \"${{ matrix.repoprefix }}"'${{ matrix.repoesc }}'"\" }\\\\' > \/usr\/local\/etc\/pkg\/repos\/FreeBSD.conf \&\& pkg  install  -y '/" /home/runner/work/_actions/vmactions/freebsd-vm/v*/run.sh
+          sed -i '' "s/^export VM_INSTALL_CMD$/export VM_INSTALL_CMD=\$'mkdir -p \/usr\/local\/etc\/pkg\/repos \&\& echo \\\\'FreeBSD: { url: \"${{ matrix.repoprefix }}"'${{ matrix.repoesc }}'"\" }\\\\' > \/usr\/local\/etc\/pkg\/repos\/FreeBSD.conf \&\& pkg  install  -y '/" /home/runner/work/_actions/vmactions/freebsd-vm/v*/run.sh
           echo "$(</home/runner/work/_actions/vmactions/freebsd-vm/v*/run.sh )"
       - name: Setup Lock
         if: ${{ matrix.version == matrix.main-job }}
@@ -164,14 +164,14 @@ jobs:
             set -e -x
             git clone --depth=1 https://git.FreeBSD.org/ports.git /usr/ports
             ${{ matrix.beforebuild }}
-            sed -i 's/\(PORTVERSION=\t\).*$/\1_${{ needs.shouldbuild.outputs.currWebRelease }}/' /usr/ports/www/vaultwarden-web_vault/Makefile
+            sed -i '' 's/\(PORTVERSION=\t\).*$/\1${{ needs.shouldbuild.outputs.currWebRelease }}/' /usr/ports/www/vaultwarden-web_vault/Makefile
             pkg install -y `make -C /usr/ports/www/vaultwarden-web_vault build-depends-list | awk '{gsub(/^.*\//,"");ORS=FS;}1; END{print "\n"}' ${{ matrix.afterawk }}`
             make -C /usr/ports/www/vaultwarden-web_vault makesum ${{ matrix.makeargs }}
             make -C /usr/ports/www/vaultwarden-web_vault install BATCH=yes ${{ matrix.makeargs }}
             pkg create -o "${GITHUB_WORKSPACE}/work" vaultwarden_web-vault
-            sed -i 's/\(DISTVERSION=\t\).*$/\1_${{ needs.shouldbuild.outputs.currRelease }}/' /usr/ports/security/vaultwarden/Makefile
-            sed -i 's/\(PORTREVISION=\t.*\)$/\1_${{ needs.shouldbuild.outputs.currCommit }}/' /usr/ports/security/vaultwarden/Makefile
-            sed -i 's/\(USE_GITHUB=\tyes\)$/\1\nGH_TAGNAME=\tmain/' /usr/ports/security/vaultwarden/Makefile
+            sed -i '' 's/\(DISTVERSION=\t\).*$/\1${{ needs.shouldbuild.outputs.currRelease }}/' /usr/ports/security/vaultwarden/Makefile
+            sed -i '' 's/\(PORTREVISION=\t.*\)$/\1${{ needs.shouldbuild.outputs.currCommit }}/' /usr/ports/security/vaultwarden/Makefile
+            sed -i '' 's/\(USE_GITHUB=\tyes\)$/\1\nGH_TAGNAME=\tmain/' /usr/ports/security/vaultwarden/Makefile
             pkg install -y `make -C /usr/ports/security/vaultwarden build-depends-list | awk '{gsub(/^.*\//,"");ORS=FS;}1; END{print "\n"}' ${{ matrix.afterawk }}`
             make -C /usr/ports/security/vaultwarden makesum ${{ matrix.makeargs }}
             make -C /usr/ports/security/vaultwarden cargo-crates ${{ matrix.makeargs }} > /usr/ports/security/vaultwarden/Makefile.crates
