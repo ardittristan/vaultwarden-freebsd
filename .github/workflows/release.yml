@@ -176,7 +176,7 @@ jobs:
             make -C /usr/ports/security/vaultwarden makesum BATCH=yes ${{ matrix.makeargs }}
             make -C /usr/ports/security/vaultwarden cargo-crates BATCH=yes ${{ matrix.makeargs }} > /usr/ports/security/vaultwarden/Makefile.crates
             make -C /usr/ports/security/vaultwarden makesum BATCH=yes ${{ matrix.makeargs }}
-            ls /usr/ports/security/vaultwarden/work/vaultwarden-main/cargo-crates
+            echo `ls /usr/ports/security/vaultwarden/work/vaultwarden-main/cargo-crates`
             make -C /usr/ports/security/vaultwarden install BATCH=yes ${{ matrix.makeargs }}
             pkg create -o "${GITHUB_WORKSPACE}/work" vaultwarden
             cp -RL "${GITHUB_WORKSPACE}/work/" "${GITHUB_WORKSPACE}/repo/${{ matrix.abi }}/${{ matrix.abiversion }}/All"
