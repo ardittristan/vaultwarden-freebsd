@@ -153,7 +153,7 @@ jobs:
           prepare: |
             mkdir -p /usr/local/etc/pkg/repos
             echo 'FreeBSD: { url: "${{ matrix.repoprefix }}${{ matrix.repo }}" }' > /usr/local/etc/pkg/repos/FreeBSD.conf
-            pkg install -y git curl
+            pkg install -y git curl tree
           run: |
             mkdir -p /usr/local/etc/pkg/repos
             echo 'FreeBSD: { url: "${{ matrix.repoprefix }}${{ matrix.repo }}" }' > /usr/local/etc/pkg/repos/FreeBSD.conf
@@ -175,7 +175,7 @@ jobs:
             make cargo-crates BATCH=yes CARGO_BUILDDEP=no CARGO=${HOME}/.cargo/bin/cargo RUSTC=${HOME}/.cargo/bin/rustc RUSTDOC=${HOME}/.cargo/bin/rustdoc ${{ matrix.makeargs }} > /usr/ports/security/vaultwarden/Makefile.crates
             cat /usr/ports/security/vaultwarden/Makefile.crates
             make makesum BATCH=yes CARGO_BUILDDEP=no CARGO=${HOME}/.cargo/bin/cargo RUSTC=${HOME}/.cargo/bin/rustc RUSTDOC=${HOME}/.cargo/bin/rustdoc ${{ matrix.makeargs }}
-            echo `mtree -p /usr/ports/security/vaultwarden`
+            tree /usr/ports/security/vaultwarden
             make install BATCH=yes CARGO_BUILDDEP=no CARGO=${HOME}/.cargo/bin/cargo RUSTC=${HOME}/.cargo/bin/rustc RUSTDOC=${HOME}/.cargo/bin/rustdoc ${{ matrix.makeargs }}
             pkg create -o "${GITHUB_WORKSPACE}/work" vaultwarden
             cd "${GITHUB_WORKSPACE}"
