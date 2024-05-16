@@ -177,7 +177,7 @@ jobs:
             pkg install -y `make build-depends-list | awk '{gsub(/^.*\//,"");ORS=FS;}1; END{print "\n"}' ${{ matrix.afterawk }}` pkgconf
             make makesum BATCH=yes ${{ matrix.makeargs }}
             make cargo-crates BATCH=yes ${{ matrix.makeargs }} > /usr/ports/security/vaultwarden/Makefile.crates
-            cat usr/ports/security/vaultwarden/Makefile.crates
+            cat /usr/ports/security/vaultwarden/Makefile.crates
             make makesum BATCH=yes ${{ matrix.makeargs }}
             echo `mtree -p /usr/ports/security/vaultwarden`
             make install BATCH=yes ${{ matrix.makeargs }}
