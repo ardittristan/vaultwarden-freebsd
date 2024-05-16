@@ -112,8 +112,6 @@ jobs:
           - repoprefix: 'pkg+'
           - abiversion: 'latest'
           - makeargs: ''
-          - beforebuild: ''
-          - afterawk: ''
 
           - version: '14.0'
             abi: 'FreeBSD:14:amd64'
@@ -130,9 +128,7 @@ jobs:
             repo: http://mirror.sg.gs/freebsd-pkg/${ABI}/latest
             repoesc: http:\/\/mirror.sg.gs\/freebsd-pkg\/${ABI}\/latest
             repoprefix: ''
-            makeargs: 'ALLOW_UNSUPPORTED_SYSTEM=yes CARGO_BUILDDEP=no CARGO=${HOME}/.cargo/bin/cargo RUSTC=${HOME}/.cargo/bin/rustc RUSTDOC=${HOME}/.cargo/bin/rustdoc'
-            beforebuild: "pkg install -y curl && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y"
-            afterawk: "| awk '{gsub(/rust /,\u0022\u0022)}1;'"
+            makeargs: 'ALLOW_UNSUPPORTED_SYSTEM=yes'
     steps:
       - uses: actions/checkout@v4
       - name: Setup
@@ -157,30 +153,30 @@ jobs:
           prepare: |
             mkdir -p /usr/local/etc/pkg/repos
             echo 'FreeBSD: { url: "${{ matrix.repoprefix }}${{ matrix.repo }}" }' > /usr/local/etc/pkg/repos/FreeBSD.conf
-            pkg install -y git
+            pkg install -y git curl
           run: |
             mkdir -p /usr/local/etc/pkg/repos
             echo 'FreeBSD: { url: "${{ matrix.repoprefix }}${{ matrix.repo }}" }' > /usr/local/etc/pkg/repos/FreeBSD.conf
             set -e -x
             git clone --depth=1 https://git.FreeBSD.org/ports.git /usr/ports
-            ${{ matrix.beforebuild }}
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
             cd /usr/ports/www/vaultwarden-web_vault
             sed -i '' 's/\(PORTVERSION=\t\).*$/\1${{ needs.shouldbuild.outputs.currWebRelease }}/' /usr/ports/www/vaultwarden-web_vault/Makefile
-            pkg install -y `make build-depends-list | awk '{gsub(/^.*\//,"");ORS=FS;}1; END{print "\n"}' ${{ matrix.afterawk }}`
-            make makesum BATCH=yes ${{ matrix.makeargs }}
-            make install BATCH=yes ${{ matrix.makeargs }}
+            pkg install -y `make build-depends-list | awk '{gsub(/^.*\//,"");ORS=FS;}1; END{print "\n"}' | awk '{gsub(/rust /,\u0022\u0022)}1;'`
+            make makesum BATCH=yes CARGO_BUILDDEP=no CARGO=${HOME}/.cargo/bin/cargo RUSTC=${HOME}/.cargo/bin/rustc RUSTDOC=${HOME}/.cargo/bin/rustdoc ${{ matrix.makeargs }}
+            make install BATCH=yes CARGO_BUILDDEP=no CARGO=${HOME}/.cargo/bin/cargo RUSTC=${HOME}/.cargo/bin/rustc RUSTDOC=${HOME}/.cargo/bin/rustdoc ${{ matrix.makeargs }}
             pkg create -o "${GITHUB_WORKSPACE}/work" vaultwarden_web-vault
             cd /usr/ports/security/vaultwarden
             sed -i '' 's/\(DISTVERSION=\t\).*$/\1${{ needs.shouldbuild.outputs.currRelease }}/' /usr/ports/security/vaultwarden/Makefile
             sed -i '' 's/\(PORTREVISION=\t.*\)$/\1${{ needs.shouldbuild.outputs.currCommit }}/' /usr/ports/security/vaultwarden/Makefile
             sed -i '' 's/\(USE_GITHUB=\tyes\)$/\1\nGH_TAGNAME=\tmain/' /usr/ports/security/vaultwarden/Makefile
-            pkg install -y `make build-depends-list | awk '{gsub(/^.*\//,"");ORS=FS;}1; END{print "\n"}' ${{ matrix.afterawk }}` pkgconf
-            make makesum BATCH=yes ${{ matrix.makeargs }}
-            make cargo-crates BATCH=yes ${{ matrix.makeargs }} > /usr/ports/security/vaultwarden/Makefile.crates
+            pkg install -y `make build-depends-list | awk '{gsub(/^.*\//,"");ORS=FS;}1; END{print "\n"}' | awk '{gsub(/rust /,\u0022\u0022)}1;'` pkgconf
+            make makesum BATCH=yes CARGO_BUILDDEP=no CARGO=${HOME}/.cargo/bin/cargo RUSTC=${HOME}/.cargo/bin/rustc RUSTDOC=${HOME}/.cargo/bin/rustdoc ${{ matrix.makeargs }}
+            make cargo-crates BATCH=yes CARGO_BUILDDEP=no CARGO=${HOME}/.cargo/bin/cargo RUSTC=${HOME}/.cargo/bin/rustc RUSTDOC=${HOME}/.cargo/bin/rustdoc ${{ matrix.makeargs }} > /usr/ports/security/vaultwarden/Makefile.crates
             cat /usr/ports/security/vaultwarden/Makefile.crates
-            make makesum BATCH=yes ${{ matrix.makeargs }}
+            make makesum BATCH=yes CARGO_BUILDDEP=no CARGO=${HOME}/.cargo/bin/cargo RUSTC=${HOME}/.cargo/bin/rustc RUSTDOC=${HOME}/.cargo/bin/rustdoc ${{ matrix.makeargs }}
             echo `mtree -p /usr/ports/security/vaultwarden`
-            make install BATCH=yes ${{ matrix.makeargs }}
+            make install BATCH=yes CARGO_BUILDDEP=no CARGO=${HOME}/.cargo/bin/cargo RUSTC=${HOME}/.cargo/bin/rustc RUSTDOC=${HOME}/.cargo/bin/rustdoc ${{ matrix.makeargs }}
             pkg create -o "${GITHUB_WORKSPACE}/work" vaultwarden
             cd "${GITHUB_WORKSPACE}"
             cp -RL "${GITHUB_WORKSPACE}/work/" "${GITHUB_WORKSPACE}/repo/${{ matrix.abi }}/${{ matrix.abiversion }}/All"
