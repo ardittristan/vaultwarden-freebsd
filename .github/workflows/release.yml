@@ -176,6 +176,10 @@ jobs:
             cat /usr/ports/security/vaultwarden/Makefile.crates
             cp -RL /usr/ports/distfiles/rust/crates/ /usr/ports/security/vaultwarden/cargo-crates
             make makesum BATCH=yes CARGO_BUILDDEP=no CARGO=${HOME}/.cargo/bin/cargo RUSTC=${HOME}/.cargo/bin/rustc RUSTDOC=${HOME}/.cargo/bin/rustdoc ${{ matrix.makeargs }}
+            rm /usr/ports/security/vaultwarden/work/vaultwarden-main/Cargo.lock
+            make makesum BATCH=yes CARGO_BUILDDEP=no CARGO=${HOME}/.cargo/bin/cargo RUSTC=${HOME}/.cargo/bin/rustc RUSTDOC=${HOME}/.cargo/bin/rustdoc ${{ matrix.makeargs }}
+            make cargo-crates BATCH=yes CARGO_BUILDDEP=no CARGO=${HOME}/.cargo/bin/cargo RUSTC=${HOME}/.cargo/bin/rustc RUSTDOC=${HOME}/.cargo/bin/rustdoc ${{ matrix.makeargs }} > /usr/ports/security/vaultwarden/Makefile.crates
+            make makesum BATCH=yes CARGO_BUILDDEP=no CARGO=${HOME}/.cargo/bin/cargo RUSTC=${HOME}/.cargo/bin/rustc RUSTDOC=${HOME}/.cargo/bin/rustdoc ${{ matrix.makeargs }}
             tree /usr/ports/security/vaultwarden
             tree /usr/ports/distfiles
             make install BATCH=yes CARGO_BUILDDEP=no CARGO=${HOME}/.cargo/bin/cargo RUSTC=${HOME}/.cargo/bin/rustc RUSTDOC=${HOME}/.cargo/bin/rustdoc ${{ matrix.makeargs }}
