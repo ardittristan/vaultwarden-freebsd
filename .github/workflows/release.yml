@@ -172,11 +172,12 @@ jobs:
             sed -i '' 's/\(USE_GITHUB=\tyes\)$/\1\nGH_TAGNAME=\tmain/' /usr/ports/security/vaultwarden/Makefile
             pkg install -y `make build-depends-list | awk '{gsub(/^.*\//,"");ORS=FS;}1; END{print "\n"}' | awk '{gsub(/rust /,"")}1;'` pkgconf
             make makesum BATCH=yes CARGO_BUILDDEP=no CARGO=${HOME}/.cargo/bin/cargo RUSTC=${HOME}/.cargo/bin/rustc RUSTDOC=${HOME}/.cargo/bin/rustdoc ${{ matrix.makeargs }}
+            cd work/vaultwarden-main
             ~/.cargo/bin/cargo update
+            cd ./../../
             make cargo-crates BATCH=yes CARGO_BUILDDEP=no CARGO=${HOME}/.cargo/bin/cargo RUSTC=${HOME}/.cargo/bin/rustc RUSTDOC=${HOME}/.cargo/bin/rustdoc ${{ matrix.makeargs }} > /usr/ports/security/vaultwarden/Makefile.crates
             cat /usr/ports/security/vaultwarden/Makefile.crates
             cp -RL /usr/ports/distfiles/rust/crates/ /usr/ports/security/vaultwarden/cargo-crates
-            ~/.cargo/bin/cargo update
             make makesum BATCH=yes CARGO_BUILDDEP=no CARGO=${HOME}/.cargo/bin/cargo RUSTC=${HOME}/.cargo/bin/rustc RUSTDOC=${HOME}/.cargo/bin/rustdoc ${{ matrix.makeargs }}
             tree /usr/ports/security/vaultwarden
             tree /usr/ports/distfiles
