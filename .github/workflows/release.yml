@@ -115,16 +115,20 @@ jobs:
 
           - version: '14.0'
             abi: 'FreeBSD:14:amd64'
+            locktimeout: 60
 
           - version: '13.3'
             abi: 'FreeBSD:13:amd64'
+            locktimeout: 90
 
           - version: '13.2'
             abi: 'FreeBSD:13:amd64'
+            locktimeout: 120
             abiversion: '13.2'
 
           - version: '12.4'
             abi: 'FreeBSD:12:amd64'
+            locktimeout: 150
             repo: http://mirror.sg.gs/freebsd-pkg/${ABI}/latest
             repoesc: http:\/\/mirror.sg.gs\/freebsd-pkg\/${ABI}\/latest
             repoprefix: ''
@@ -184,11 +188,12 @@ jobs:
             for f in *; do mv "$f" "freebsd${{ matrix.version }}_$f"; done
       - name: Wait for lock
         uses: rakles/matrix-lock@v1.0.0
+        continue-on-error: true
         with:
           step: wait
           id: ${{ matrix.version }}
-          retry-delay: 15
-          retry-count: 120
+          retry-delay: 10
+          retry-count: ${{ matrix.locktimeout }}
       - name: Commit
         uses: github-actions-x/commit@v2.9
         with:
