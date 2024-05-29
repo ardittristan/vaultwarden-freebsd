@@ -177,6 +177,7 @@ jobs:
             pkg install -y `make build-depends-list | awk '{gsub(/^.*\//,"");ORS=FS;}1; END{print "\n"}' | awk '{gsub(/rust /,"")}1;'` pkgconf
             make makesum BATCH=yes CARGO_BUILDDEP=no CARGO=${HOME}/.cargo/bin/cargo RUSTC=${HOME}/.cargo/bin/rustc RUSTDOC=${HOME}/.cargo/bin/rustdoc CARGO_CONFIGURE=no ${{ matrix.makeargs }}
             make cargo-crates BATCH=yes CARGO_BUILDDEP=no CARGO=${HOME}/.cargo/bin/cargo RUSTC=${HOME}/.cargo/bin/rustc RUSTDOC=${HOME}/.cargo/bin/rustdoc CARGO_CONFIGURE=no ${{ matrix.makeargs }} > /usr/ports/security/vaultwarden/Makefile.crates
+            awk '/(=|CARGO_CRATES=)/, EOF {print >"/usr/ports/security/vaultwarden/Makefile.crates"}' /usr/ports/security/vaultwarden/Makefile.crates
             make makesum BATCH=yes CARGO_BUILDDEP=no CARGO=${HOME}/.cargo/bin/cargo RUSTC=${HOME}/.cargo/bin/rustc RUSTDOC=${HOME}/.cargo/bin/rustdoc CARGO_CONFIGURE=no ${{ matrix.makeargs }}
             make install BATCH=yes CARGO_BUILDDEP=no CARGO=${HOME}/.cargo/bin/cargo RUSTC=${HOME}/.cargo/bin/rustc RUSTDOC=${HOME}/.cargo/bin/rustdoc CARGO_CONFIGURE=no ${{ matrix.makeargs }}
             pkg create -o "${GITHUB_WORKSPACE}/work" vaultwarden
