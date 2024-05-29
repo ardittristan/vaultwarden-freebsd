@@ -1,5 +1,7 @@
 name: Create release
 on:
+  schedule:
+    - cron: '20 20 * * *'
   workflow_dispatch:
     inputs:
       always_build:
@@ -157,19 +159,31 @@ jobs:
           prepare: |
             mkdir -p /usr/local/etc/pkg/repos
             echo 'FreeBSD: { url: "${{ matrix.repoprefix }}${{ matrix.repo }}" }' > /usr/local/etc/pkg/repos/FreeBSD.conf
-            pkg install -y git curl tree
+            pkg install -y git curl
           run: |
-            mkdir -p /usr/local/etc/pkg/repos
-            echo 'FreeBSD: { url: "${{ matrix.repoprefix }}${{ matrix.repo }}" }' > /usr/local/etc/pkg/repos/FreeBSD.conf
-            set -e -x
+            set -e
+
+            echo '::group::Installing Ports tree'; set -x
             git clone --depth=1 https://git.FreeBSD.org/ports.git /usr/ports
+            set +x; echo '::endgroup::'
+
+            echo '::group::Installing Rust'; set -x
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+            set +x; echo '::endgroup::'
+
+            echo '::group::Patch Web Vault'; set -x
             cd /usr/ports/www/vaultwarden-web_vault
             sed -i '' 's/\(PORTVERSION=\t\).*$/\1${{ needs.shouldbuild.outputs.currWebRelease }}/' /usr/ports/www/vaultwarden-web_vault/Makefile
             pkg install -y `make build-depends-list | awk '{gsub(/^.*\//,"");ORS=FS;}1; END{print "\n"}' | awk '{gsub(/rust /,"")}1;'`
             make makesum BATCH=yes CARGO_BUILDDEP=no CARGO=${HOME}/.cargo/bin/cargo RUSTC=${HOME}/.cargo/bin/rustc RUSTDOC=${HOME}/.cargo/bin/rustdoc CARGO_CONFIGURE=no ${{ matrix.makeargs }}
+            set +x; echo '::endgroup::'
+
+            echo '::group::Build Web Vault'; set -x
             make install BATCH=yes CARGO_BUILDDEP=no CARGO=${HOME}/.cargo/bin/cargo RUSTC=${HOME}/.cargo/bin/rustc RUSTDOC=${HOME}/.cargo/bin/rustdoc CARGO_CONFIGURE=no ${{ matrix.makeargs }}
             pkg create -o "${GITHUB_WORKSPACE}/work" vaultwarden_web-vault
+            set +x; echo '::endgroup::'
+
+            echo '::group::Patch Vaultwarden'; set -x
             cd /usr/ports/security/vaultwarden
             sed -i '' 's/\(DISTVERSION=\t\).*$/\1${{ needs.shouldbuild.outputs.currRelease }}/' /usr/ports/security/vaultwarden/Makefile
             sed -i '' 's/\(PORTREVISION=\t.*\)$/\1${{ needs.shouldbuild.outputs.currCommit }}/' /usr/ports/security/vaultwarden/Makefile
@@ -179,14 +193,21 @@ jobs:
             make cargo-crates BATCH=yes CARGO_BUILDDEP=no CARGO=${HOME}/.cargo/bin/cargo RUSTC=${HOME}/.cargo/bin/rustc RUSTDOC=${HOME}/.cargo/bin/rustdoc CARGO_CONFIGURE=no ${{ matrix.makeargs }} > /usr/ports/security/vaultwarden/Makefile.crates
             awk '/(=|CARGO_CRATES=)/, EOF {print >"/usr/ports/security/vaultwarden/Makefile.crates"}' /usr/ports/security/vaultwarden/Makefile.crates
             make makesum BATCH=yes CARGO_BUILDDEP=no CARGO=${HOME}/.cargo/bin/cargo RUSTC=${HOME}/.cargo/bin/rustc RUSTDOC=${HOME}/.cargo/bin/rustdoc CARGO_CONFIGURE=no ${{ matrix.makeargs }}
+            set +x; echo '::endgroup::'
+
+            echo '::group::Build Vaultwarden'; set -x
             make install BATCH=yes CARGO_BUILDDEP=no CARGO=${HOME}/.cargo/bin/cargo RUSTC=${HOME}/.cargo/bin/rustc RUSTDOC=${HOME}/.cargo/bin/rustdoc CARGO_CONFIGURE=no ${{ matrix.makeargs }}
             pkg create -o "${GITHUB_WORKSPACE}/work" vaultwarden
+            set +x; echo '::endgroup::'
+
+            echo '::group::Build Repo'; set -x
             cd "${GITHUB_WORKSPACE}"
             cp -RL "${GITHUB_WORKSPACE}/work/" "${GITHUB_WORKSPACE}/repo/${{ matrix.abi }}/${{ matrix.abiversion }}/All"
             pkg repo "${GITHUB_WORKSPACE}/repo/${{ matrix.abi }}/${{ matrix.abiversion }}"
             for f in $(find ./repo/* -type l); do cp $(readlink -f %R "$f") ./repo/tmp; rm "$f"; mv ./repo/tmp "$f"; done
             cd "${GITHUB_WORKSPACE}/work/"
             for f in *; do mv "$f" "freebsd${{ matrix.version }}_$f"; done
+            set +x; echo '::endgroup::'
       - name: Wait for lock
         uses: rakles/matrix-lock@v1.0.0
         continue-on-error: true
