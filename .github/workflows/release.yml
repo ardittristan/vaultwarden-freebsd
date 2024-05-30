@@ -146,7 +146,7 @@ jobs:
           echo "$(</home/runner/work/_actions/vmactions/freebsd-vm/v*/run.sh )"
       - name: Setup Lock
         if: ${{ matrix.version == matrix.main-job }}
-        uses: rakles/matrix-lock@v1.0.0
+        uses: MrHash/matrix-lock@v1.0.1
         with:
           step: init
           order: ${{ matrix.versions }}
@@ -209,7 +209,7 @@ jobs:
             for f in *; do mv "$f" "freebsd${{ matrix.version }}_$f"; done
             set +x; echo '::endgroup::'
       - name: Wait for lock
-        uses: rakles/matrix-lock@v1.0.0
+        uses: MrHash/matrix-lock@v1.0.1
         continue-on-error: true
         with:
           step: wait
@@ -270,7 +270,7 @@ jobs:
           retention-days: 7
       - name: Release lock
         if: ${{ success() || failure() }}
-        uses: rakles/matrix-lock@v1.0.0
+        uses: MrHash/matrix-lock@v1.0.1
         with:
           step: continue
           id: ${{ matrix.version }}
