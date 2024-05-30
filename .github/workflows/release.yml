@@ -324,13 +324,19 @@ jobs:
           email: actions@github.com
       - name: Update Tag
         uses: richardsimko/update-tag@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: vaultwarden-${{ needs.shouldbuild.outputs.currRelease }}_${{ github.run_number }}-${{ needs.shouldbuild.outputs.currCommit }}
       - name: Update Web Tag
         uses: richardsimko/update-tag@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: vaultwarden_web-vault-${{ needs.shouldbuild.outputs.currWebRelease }}
       - name: Update Latest Tag
         uses: richardsimko/update-tag@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: latest-release
