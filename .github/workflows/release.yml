@@ -307,6 +307,11 @@ jobs:
       contents: write
     if: ${{ !inputs.draft_build && !inputs.artifact_build }}
     steps:
+      - uses: yogeshlonkar/wait-for-jobs@v0
+        with:
+          ignore-skipped: 'true'
+          jobs: 'publish'
+          suffix: 'false'
       - uses: actions/checkout@v4
       - name: Update store
         run: |
