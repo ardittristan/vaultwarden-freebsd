@@ -76,11 +76,11 @@ jobs:
               };
 
             const lastCommit = fs
-              .readFileSync("${{ github.workspace }}/store/lastCommitChecked")
-              .trim();
+              .readFileSync("${{ github.workspace }}/store/lastCommitChecked", "utf8")
+              .toString().trim();
             const lastWebRelease = fs
-              .readFileSync("${{ github.workspace }}/store/lastWebRelease")
-              .trim();
+              .readFileSync("${{ github.workspace }}/store/lastWebRelease", "utf8")
+              .toString().trim();
 
             return {
               result: currCommit !== lastCommit || currWebRelease !== lastWebRelease,
