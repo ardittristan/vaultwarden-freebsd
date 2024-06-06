@@ -194,8 +194,11 @@ jobs:
             sed -i '' 's/\[dependencies]/[build-dependencies]\nbindgen = { version = "0.69.4", optional = true }\n\n[dependencies]/' /usr/ports/security/vaultwarden/work/vaultwarden-main/Cargo.toml
             sed -i '' 's/\[features]/[features]\nbuildtime_bindgen = ["dep:bindgen"]\nmysqlclient-sys = ["buildtime_bindgen"]\npq-sys = ["buildtime_bindgen"]/' /usr/ports/security/vaultwarden/work/vaultwarden-main/Cargo.toml
             rm /usr/ports/security/vaultwarden/work/vaultwarden-main/Cargo.lock
+            cat /usr/ports/security/vaultwarden/work/vaultwarden-main/Cargo.toml
             make makesum BATCH=yes CARGO_BUILDDEP=no CARGO=${HOME}/.cargo/bin/cargo RUSTC=${HOME}/.cargo/bin/rustc RUSTDOC=${HOME}/.cargo/bin/rustdoc CARGO_CONFIGURE=no ${{ matrix.makeargs }}
             make cargo-crates BATCH=yes CARGO_BUILDDEP=no CARGO=${HOME}/.cargo/bin/cargo RUSTC=${HOME}/.cargo/bin/rustc RUSTDOC=${HOME}/.cargo/bin/rustdoc CARGO_CONFIGURE=no ${{ matrix.makeargs }} > /usr/ports/security/vaultwarden/Makefile.crates
+            cat /usr/ports/security/vaultwarden/work/vaultwarden-main/Cargo.toml
+            cat /usr/ports/security/vaultwarden/work/vaultwarden-main/Cargo.lock
             awk '/(=|CARGO_CRATES=)/, EOF {print >"/usr/ports/security/vaultwarden/Makefile.crates"}' /usr/ports/security/vaultwarden/Makefile.crates
             make makesum BATCH=yes CARGO_BUILDDEP=no CARGO=${HOME}/.cargo/bin/cargo RUSTC=${HOME}/.cargo/bin/rustc RUSTDOC=${HOME}/.cargo/bin/rustdoc CARGO_CONFIGURE=no ${{ matrix.makeargs }}
             set +x; echo '::endgroup::'
