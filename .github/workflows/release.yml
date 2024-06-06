@@ -201,7 +201,12 @@ jobs:
             make makesum BATCH=yes CARGO_BUILDDEP=no CARGO=${HOME}/.cargo/bin/cargo RUSTC=${HOME}/.cargo/bin/rustc RUSTDOC=${HOME}/.cargo/bin/rustdoc CARGO_CONFIGURE=no ${{ matrix.makeargs }}
             set +x; echo '::endgroup::'
 
+            echo '::group::tree local'; set -x
+            tree /usr/local
+            set +x; echo '::endgroup::'
+
             echo '::group::Build Vaultwarden'; set -x
+            set BINDGEN_EXTRA_CLANG_ARGS = -I/usr/local/include
             make install BATCH=yes CARGO_BUILDDEP=no CARGO=${HOME}/.cargo/bin/cargo RUSTC=${HOME}/.cargo/bin/rustc RUSTDOC=${HOME}/.cargo/bin/rustdoc CARGO_CONFIGURE=no BINDGEN_EXTRA_CLANG_ARGS=-I/usr/local/include ${{ matrix.makeargs }}
             pkg create -o "${GITHUB_WORKSPACE}/work" vaultwarden
             set +x; echo '::endgroup::'
