@@ -205,7 +205,7 @@ jobs:
             set +x; echo '::endgroup::'
 
             echo '::group::Build Vaultwarden'; set -x
-            make install BATCH=yes CARGO_BUILDDEP=no CARGO=${HOME}/.cargo/bin/cargo RUSTC=${HOME}/.cargo/bin/rustc RUSTDOC=${HOME}/.cargo/bin/rustdoc CARGO_CONFIGURE=no ${{ matrix.makeargs }}
+            make install BATCH=yes CARGO_BUILDDEP=no CARGO=${HOME}/.cargo/bin/cargo RUSTC=${HOME}/.cargo/bin/rustc RUSTDOC=${HOME}/.cargo/bin/rustdoc CARGO_CONFIGURE=no BINDGEN_EXTRA_CLANG_ARGS='-I/usr/local/include -I/usr/local/include/mysql' ${{ matrix.makeargs }}
             pkg create -o "${GITHUB_WORKSPACE}/work" vaultwarden
             set +x; echo '::endgroup::'
 
