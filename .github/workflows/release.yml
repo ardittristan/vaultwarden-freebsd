@@ -152,10 +152,13 @@ jobs:
           order: ${{ matrix.versions }}
       - name: Build
         uses: vmactions/freebsd-vm@v1
+        env:
+          BINDGEN_EXTRA_CLANG_ARGS: -I/usr/local/include
         with:
           release: ${{ matrix.version }}
           sync: sshfs
           usesh: true
+          envs: 'BINDGEN_EXTRA_CLANG_ARGS'
           prepare: |
             mkdir -p /usr/local/etc/pkg/repos
             echo 'FreeBSD: { url: "${{ matrix.repoprefix }}${{ matrix.repo }}" }' > /usr/local/etc/pkg/repos/FreeBSD.conf
@@ -199,10 +202,6 @@ jobs:
             make cargo-crates BATCH=yes CARGO_BUILDDEP=no CARGO=${HOME}/.cargo/bin/cargo RUSTC=${HOME}/.cargo/bin/rustc RUSTDOC=${HOME}/.cargo/bin/rustdoc CARGO_CONFIGURE=no ${{ matrix.makeargs }} > /usr/ports/security/vaultwarden/Makefile.crates
             awk '/(=|CARGO_CRATES=)/, EOF {print >"/usr/ports/security/vaultwarden/Makefile.crates"}' /usr/ports/security/vaultwarden/Makefile.crates
             make makesum BATCH=yes CARGO_BUILDDEP=no CARGO=${HOME}/.cargo/bin/cargo RUSTC=${HOME}/.cargo/bin/rustc RUSTDOC=${HOME}/.cargo/bin/rustdoc CARGO_CONFIGURE=no ${{ matrix.makeargs }}
-            set +x; echo '::endgroup::'
-
-            echo '::group::tree local'; set -x
-            tree /usr/local
             set +x; echo '::endgroup::'
 
             echo '::group::Build Vaultwarden'; set -x
